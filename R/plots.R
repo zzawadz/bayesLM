@@ -1,9 +1,17 @@
 setMethod("plotCoefDistributions", "BLM", function(model, nsd = 3.5, index = NULL,...)
 {
+  #Rysowanie rozkladow analitycznych dla parametrow.
+  # jezeli index = NULL - dosmyslnie:
+  # rysowane dla wszystkich parametrow
+  # jezeli index = np 1 - wtedy rysowany pierwszy parametr
+  # itp
+  
+  #Ile mamy prametrow modelu:
   n = length(model@coeff)
   
+  #Nazwy parametrow  - beda nazwami na wykresie
   names = names(model@coeff)
-  
+
   tmp = FALSE
   if(is.null(index)) 
   {
@@ -14,11 +22,14 @@ setMethod("plotCoefDistributions", "BLM", function(model, nsd = 3.5, index = NUL
       
   for(i in index)
   {
+    #rysowanie i-tego parametru:
     mu = model@coeff[i]
     prec = model@precision[i]
     df = model@df
     sd = sqrt(1/prec*(df/(df-2)))
-    curve(densityStudnet(x,df=df,mu=mu,prec=prec), ylab = "", xlim = c(mu-nsd*sd, mu+nsd*sd), main = names[i],...)
+    #Curve rysuje ten rozklad o gestosci zdefiniowanej w densityStudent:
+    curve(densityStudnet(x,df=df,mu=mu,prec=prec), ylab = "",
+          xlim = c(mu-nsd*sd, mu+nsd*sd), main = names[i],...)
   }
   
   if(tmp) par(par_def)

@@ -13,8 +13,6 @@
 
 \section*{Motywacje}
 
-Może komuś pomoże w projekcie związanym z Wnioskowaniem Bayesowskim. Nie polecam jednak zbytnio kopiować tego kodu - użyłem w nich kilku ciekawych konstrukcji i może się być komuś niedoświadczonemu w R cięzko z nich wytłumaczyć... Poza tym mogą być w nim bugi.
-
 Kod leży też w \href{https://github.com/zzawadz/bayesLM/tree/master/R}{repozytorium}.
 
 Cały kod został zorganizowany w postaci pakietu - poniżej argumenty by tak robić:
@@ -29,6 +27,14 @@ Dlaczego tak by nie robić:
 \begin{itemize}
 \item Trzeba nauczyć się budować pakiety:-)
 \end{itemize}
+
+Instalacja pakietu:
+<<eval=FALSE>>=
+install.packages(devtools)
+require(devtools)
+install_github("bayesLM", username="zzawadz")
+require(bayesLM)
+@
  
 \section{Start!}
 
@@ -106,7 +112,158 @@ natomiast w R metodą jest funckja przyjmująca za argument obiekt danej klasy:
 <<eval=FALSE>>=
 zrobCos(obiekt)
 @
-Kiedys trzeba opisac to szerzej...
+Jak więcj stworzyć taką metodę dla klasy? Jest do troszkę pokomplikowane, ale da się:-) Wpierw trzeba stworzyć funckję generyczną - nazwa dziwna, ale już wyjaśniam co to. Generalnie w R jest tak, że funckje mogą się różnie zachować w zależności od tego od tego co otrzymają. Pewnie znacie funkcję summary. Poniżej przykład jej zachowania w zależności od tego, co dostaje - w pierwszym przypadku dostaje wektror liczb - wyświetla jego statystyki. W drugim przypadku dostaje oszacowany model regresji - i wyświetla co innego! No właśnie w takim przypadku funkcja generyczna zadecydowała, że jak otrzymuje typ "numeric", to robi to, a jak typ "lm" (obiekt z parametrami oszacowanej regresji), to robi co innego:
+<<>>>=
+class(x)
+summary(x)
+fit = lm(y~x)
+class(fit)
+summary(fit)
+@
 
+No to tworzymy funckję generyczną:
+<<eval=FALSE,tidy=FALSE>>=
+setGeneric("plotCoefDistributions", function(model, nsd = 3.5, 
+    index = NULL, ...) standardGeneric("plotCoefDistributions"))
+@
+
+Teraz tylko musimy przypisać, jakie są jej zachowania. Jako, że funckja "plotCoefDistributions" ma działać z obiektem klasy ""BLM", trzeba zdefiniować dla niego zachowanie:
+<<eval=FALSE,tidy=FALSE>>=
+setMethod("plotCoefDistributions", "BLM", 
+          function(model, nsd = 3.5, index = NULL,...)
+{
+  #Rysowanie rozkladow analitycznych dla parametrow.
+  # jezeli index = NULL - dosmyslnie:
+  # rysowane dla wszystkich parametrow
+  # jezeli index = np 1 - wtedy rysowany pierwszy parametr
+  # itp
+  
+  #Ile mamy prametrow modelu:
+  n = length(model@coeff)
+  
+  #Nazwy parametrow  - beda nazwami na wykresie
+  names = names(model@coeff)
+
+  tmp = FALSE
+  if(is.null(index)) 
+  {
+      par_def = par(mfrow = c(n,1), mar = c(2,2,2,2))
+      tmp = TRUE
+      index = 1:n
+  }
+      
+  for(i in index)
+  {
+    #rysowanie i-tego parametru:
+    mu = model@coeff[i]
+    prec = model@precision[i]
+    df = model@df
+    sd = sqrt(1/prec*(df/(df-2)))
+    #Curve rysuje ten rozklad o gestosci zdefiniowanej 
+    #w densityStudent:
+    curve(densityStudnet(x,df=df,mu=mu,prec=prec), ylab = "",
+          xlim = c(mu-nsd*sd, mu+nsd*sd), main = names[i],...)
+  }
+  
+  if(tmp) par(par_def)
+})
+@
+Działa to tak, że przypisuje do funckji generycznej "plotCoefDistributions" zachowanie dla klasy "BLM". Czy wystarczyłaby tutaj zwykła funckja - tak:-) Ale tak jest ładniej (gdyby ktoś miał pytania dlaczego - to mogę kiedyś dopisać).
+
+Ale, by dać przykład kiedy to może rzeczywiście się przydać - i to nawet w projekcie!!! Funkcja do wyznaczania przedziałów HPD. Jak wiadomo, lub nie - przedziały HPD można wyznaczyć na podstawie próby Gibbsa i analitycznie. Można by więc zrobić dwie funckje - jedną dla tego, drugą dla owego z dwiema rożnymi nazwami. Tylko po co?
+
+<<eval=FALSE,tidy=FALSE>>=
+setGeneric("getHPD", function(model, q = 0.05)
+                      standardGeneric("getHPD"))
+setMethod("getHPD", "BLM", function(model, q = 0.05)
+{
+  q = q/2
+  sd  = getParametersSD(model)
+  tmp_n = names(model@coeff)
+  
+  #Ponizej jest kawalek kodu ktory sprawia ze gdzies placze maly
+  # programista. Jednak ten kawalek zwraca HPD!!!
+  tmp = t(t(t(qt(c(q,1-q),df=model@df)))%*%sd) + model@coeff
+  rownames(tmp) = tmp_n
+  tmp
+})
+
+setMethod("getHPD", "GibbsRes", function(model, q = 0.05)
+{
+  q = q/2
+  tmp_n = names(model@model@coeff)
+  # Przepraszam za apply - ale ja je lubie
+  # I polecam sie zapoznac
+  tmp = t(apply(gibbs@parameters[,-ncol(gibbs@parameters)],2
+                ,quantile,c(q,1-q)))
+  rownames(tmp) = tmp_n
+  tmp
+})
+@
+
+I tym sposobem jeżeli do $getHPD$ wrzucimy obiekt klasy BLM otrzmyamy analitycznie wyznaczone HPD, a jeżeli obiekt klasy GibbsRes, to wyznaczone na podstawie proóby Gibbsa - piękne!
+
+\section{Gibbs}
+
+Jeszcze pętla Gibbsa:
+
+<<eval=FALSE,tidy=FALSE>>=
+getGibbsStats = function(model, burn = 1000, n = 10000)
+{
+  ntotal = burn + n
+  
+  #Wyciagniecie potrzebnych danych z obiektu model
+  invXX = model@invXX
+  beta_hat = model@coeff
+  
+  sb = 0
+  nobs = model@nobs
+  
+  parameters = matrix(nrow = ntotal, ncol = length(model@coeff)+1)
+  
+  #Wyciagniecie y modelu
+  y = as.vector(unlist(model@data[all.vars(model@formula)[1]]))
+  # Wyciagniecie X-ow
+  X = getModelMatrix(model)
+  
+  #Parametry startowe:
+  beta = beta_hat
+  tau = 1/model@sigma2
+  
+  
+  # jazda wg wzorow - wylosowane tau jest uzywane
+  # w losowaniu bety, ktore potem zluza
+  # do wyznaczania sigmy, ktora sluzy do wyznaczania
+  # tau - itd:-)
+  for(i in 1:ntotal)
+  {
+    # tau
+    sb = sum((y-X%*%beta)^2)
+    tau=rgamma(1, nobs/2, 0.5*sb);
+    # beta
+    beta = mvrnorm(1, beta_hat, 1/tau*invXX)
+    parameters[i,] =c(beta,tau)
+  }
+  
+  # Tez reszte zapisuje w obiekcie - tylko mazywajacym sie
+  # "GibbsRes"
+  gibbs = new("GibbsRes", niter = n, 
+              burn = burn, 
+              parameters = parameters[-c(1:burn),], 
+              model = model)
+  return(gibbs)
+}
+@
+
+\section{Reszta:}
+
+Jeszcze dla porzadku - kod na roklad studenta - zrobiłem tę funckję na podstawie wikipedi - wygląda fatalnie, ale działa:-)
+<<eval=FALSE,tidy=FALSE>>=
+densityStudnet = function(x, df, mu, prec)
+{
+  (gamma((df+1)/2)/gamma(df/2)) * (prec/pi/df)^(0.5)*
+    (1+(prec*(x-mu)^2)/df)^(-(df+1)/2)
+}
+@
 
 \end{document}
