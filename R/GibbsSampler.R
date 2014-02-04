@@ -1,6 +1,5 @@
 getGibbsStats = function(model, burn = 10000, n = 100000)
 {
-  require(MASS)
   ntotal = burn + n
   invXX = model@invXX
   beta_hat = model@coeff
@@ -11,10 +10,10 @@ getGibbsStats = function(model, burn = 10000, n = 100000)
   parameters = matrix(nrow = ntotal, ncol = length(model@coeff)+1)
   
   y = as.vector(unlist(model@data[all.vars(model@formula)[1]]))
-  X = cbind(1,matrix(unlist(model@data[all.vars(model@formula)[-1]]),ncol = length(beta_hat)-1))
+  X = getModelMatrix(model)
   
   beta = beta_hat
-  tau = 1/model@sigma
+  tau = 1/model@sigma2
   
   for(i in 1:ntotal)
   {
@@ -26,7 +25,10 @@ getGibbsStats = function(model, burn = 10000, n = 100000)
     parameters[i,] =c(beta,tau)
   }
   
-  gibbs = new("GibbsRes", niter = n, burn = burn, parameters = parameters[-c(1:burn),], model = model)
+  gibbs = new("GibbsRes", niter = n, 
+              burn = burn, 
+              parameters = parameters[-c(1:burn),], 
+              model = model)
   return(gibbs)
 }
 

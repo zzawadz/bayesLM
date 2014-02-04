@@ -1,0 +1,112 @@
+\documentclass{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+
+\title{Opis bayesLM w dużym skrócie}
+\author{Zygmunt Zawadzki}
+
+
+\begin{document}
+\maketitle
+
+
+\section*{Motywacje}
+
+Może komuś pomoże w projekcie związanym z Wnioskowaniem Bayesowskim. Nie polecam jednak zbytnio kopiować tego kodu - użyłem w nich kilku ciekawych konstrukcji i może się być komuś niedoświadczonemu w R cięzko z nich wytłumaczyć... Poza tym mogą być w nim bugi.
+
+Kod leży też w \href{https://github.com/zzawadz/bayesLM/tree/master/R}{repozytorium}.
+
+Cały kod został zorganizowany w postaci pakietu - poniżej argumenty by tak robić:
+\begin{itemize}
+\item Cały kod trzeba zamknąć w postaci funckji, dlatego generalnie jest on prostszy w modyfikacji i dalszym utrzymaniu. (Nie da się za bardzo upchać nigdzie jakiś zmiennych globalnych i innych dziwnych wynalazków).
+\item Prościej powtórnie używać takiego kodu.
+\item Przy dobrej organizacji łatwo można dodawać nowe, potrzebne funkcjonalności.
+\item Skraca to późniejsze skrypty.
+\end{itemize}
+
+Dlaczego tak by nie robić:
+\begin{itemize}
+\item Trzeba nauczyć się budować pakiety:-)
+\end{itemize}
+ 
+\section{Start!}
+
+Wpierw jeszcze raz dlaczego pakiety są fajne. Poniżej będzie oszacowanie regresji liniowej dla jakiś przykładowych danych. Można obstawiać ile zajmie mi linijek  kod, dzięki któremu narysuję rozkłady brzegowe a posterori dla parametrów. (Ja obstawiam 3 linijki...)
+<<fig.height=4>>=
+# Generowanie danych - tutaj jeszcze nie liczymy linijek!!!!
+x = 1:100
+y = 5*x+6+rnorm(100)
+
+dane = data.frame(y,x)
+
+#Zaczynamy liczyc
+require(bayesLM, quietly=TRUE) #1
+model = fitBLM(y~x, dane)      #2
+plotCoefDistributions(model)   #3
+@
+
+A dodanie histogramów uzyskanych dla prób wygenerowanych próbnikiem Gibbsa:
+<<fig.height=4>>=
+gibbs = getGibbsStats(model, burn = 100, n = 1000)
+plotCoefGibbsHist(gibbs)
+@
+
+Troszkę to oszustwo, bo powyższe funckje musiałem oczywiście sam zakodować... 
+
+\section{Klasy, obiekty i inne wesołe rzeczy.}
+
+Pakiet opiera się na w zasadzie na dwóch klasach S4. Wpierw należałoby co to w ogóle jest klasa - w skrócie jest to definicja skruktury obiektu. Sam obiekt pewna skruktura zawierająca w sobie dane i metody służące do operowania na tych danych (więcej można znaleźć na wiki - \href{http://pl.wikipedia.org/wiki/Klasa_(programowanie_obiektowe)}{klasy} i  \href{http://pl.wikipedia.org/wiki/Obiekt_(programowanie_obiektowe)}{obiekty}. 
+
+Nową klasę tworzy się przy pomocy funkcji \textbf{setClass}. Poniżej znajduje się definicja klasy "BLM", która będzie używana przy estymacji modelu bayesowskiego i wyznaczaniu jego parametrów.
+<<eval=FALSE,tidy=FALSE>>=
+setClass("BLM",slots=c(formula = "formula", 
+                       data = "data.frame", 
+                       coeff = "numeric", 
+                       sigma = "numeric", 
+                       df = "numeric", 
+                       precision = "numeric", 
+                       invXX = "matrix", 
+                       nobs = "numeric"))
+@
+
+Jak widać, powyższa klasa składa się z kilku pól, które zostaną zaraz omówione - skoro mamy już klasę - trzeba stworzyć obiekt. Do tego posłuży funkcja "fitBLM":
+<<eval=FALSE,tidy=FALSE>>=
+fitBLM = function(formula, data)
+{
+  # Wpierw obliczamy oszacowania MNK parametrow
+  fit = lm(formula, data = data)
+  # Zapisuje wariancje resztowa modelu MNK
+  # pozniej moze sie gdzies przydac (np w samplerze Gibbsa)
+  sigma2 = summary(fit)$sigma^2
+  
+  # Zapisuje macierz (X'X)^(-1) - rowniez na pozniej
+  invXX = solve(t(X)%*%X)
+  # Precyzja:
+  precision = 1/as.numeric(diag((sigma*invXX)))
+  
+  # W ten sposob tworzy sie nowy obiekt klasy BLM:
+  model = new("BLM",formula = formula, 
+              data = data, 
+              coeff = fit$coefficients, 
+              sigma2 = sigma2, 
+              df = fit$df.residual, 
+              precision = precision, 
+              invXX = invXX, 
+              nobs = nrow(data))
+  return(model)
+}
+@
+
+Pozostaje dla klasy stworzyć metodę, która operuje na obiekcie tej klasy. W R w przeciwieństiwe do języków obiektowych (np. C++), jest troszkę inna składnia - standardowo metodę wywołuje się na obiekcie klasy:
+<<eval=FALSE>>=
+obiekt.zrobCos()
+@
+natomiast w R metodą jest funckja przyjmująca za argument obiekt danej klasy:
+<<eval=FALSE>>=
+zrobCos(obiekt)
+@
+Kiedys trzeba opisac to szerzej...
+
+
+\end{document}

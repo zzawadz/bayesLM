@@ -1,13 +1,27 @@
 fitBLM = function(formula, data)
 {
+  # Wpierw obliczamy oszacowania MNK parametrow
   fit = lm(formula, data = data)
-  sigma = summary(fit)$sigma^2
-  X = cbind(1,as.matrix(data[all.vars(formula)[-1]]))
-  invXX = solve(t(X)%*%X)
-  precision = 1/as.numeric(diag((sigma*invXX)))
+  # Zapisujemy wariancje resztowa modelu MNK
+  # pozniej moze sie gdzies przydac (np w samplerze Gibbsa)
+  sigma2 = summary(fit)$sigma^2
   
-  model = new("BLM",formula = formula, data = data, coeff = fit$coefficients, sigma = sigma, df = fit$df.residual, precision = precision, invXX = invXX, nobs = nrow(data))
+  #Tworzymy macierz zmiennych objasniajacych X
+  X = model.matrix(formula, data) 
+  # Zapisujemy macierz (X'X)^(-1) - rowniez na pozniej
+  invXX = solve(t(X)%*%X)
+  # Precyzja:
+  precision = 1/as.numeric(diag((sigma2*invXX)))
+  
+  # W ten sposob tworzy sie nowy obiekt klasy BLM:
+  model = new("BLM",formula = formula, 
+              data = data, 
+              coeff = fit$coefficients, 
+              sigma2 = sigma2, 
+              df = fit$df.residual, 
+              precision = precision, 
+              invXX = invXX, 
+              nobs = nrow(data))
   return(model)
 }
-
 
