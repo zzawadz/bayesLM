@@ -1,14 +1,13 @@
-
-setMethod("getSummaryStatistics", "BLM", function(model)
-{
-  t_n = names(model@coeff)
-  
-  cat(paste(t_n,paste(round(model@coeff,5), " sd:", round(getParametersSD(model),5))      , sep = ":  "),sep="\n")
-  
-  sd = getParametersSD(model)
-  HPD = getBLMHPD(model)
-  
-})
+### Przyjeta konwencja:
+### Naglowek funckji
+### setMethod("getStatystyka", "BLM", ...
+### oznacza ze funckja zwraca Statystyke rozkladu
+### wyznaczonego analitycznie
+### natomiast:
+### setMethod("getStatystyka", "GibbsRes", ...
+### zwraca statystyke obliczona na podstawie Gibbs
+### Mam nadzieje ze to dobra konwencja:-)
+### I jasna.
 
 
 getParametersSD = function(model)
@@ -17,6 +16,7 @@ getParametersSD = function(model)
   sqrt(diag(v2))
 }
 
+### Przedzialy HPD:
 
 setGeneric("getHPD", function(model, q = 0.05) standardGeneric("getHPD"))
 setMethod("getHPD", "BLM", function(model, q = 0.05)
@@ -43,4 +43,49 @@ setMethod("getHPD", "GibbsRes", function(model, q = 0.05)
   rownames(tmp) = tmp_n
   tmp
 })
+
+
+
+
+# Macierze korelacji a'posterori: 
+
+setGeneric("getCorMatrix", function(model) standardGeneric("getCorMatrix"))
+setMethod("getCorMatrix","BLM", function(model)
+{
+  # Macierz korelacji a'posterori - analitycznie
+  # Wzory mistrza - strona 6
+  # wpierw policzona macierz kowariancji
+  # nastepnie przeksztalcona i obliczona
+  # macierz korelacji 
+  
+  sigma2 = model@sigma2
+  invXX  = model@invXX
+  df = model@df
+  cov = df/(df-2)*sigma2*invXX
+  v = solve(sqrt(diag(diag(cov))))
+  cor = v%*%cov%*%v
+  
+  # Przygotowanie nazw dla macierzy:
+  names = getCoeffNames(model)
+  rownames(cor) = names
+  colnames(cor) = names
+  return(cor)
+})
+
+setMethod("getCorMatrix","GibbsRes", function(model)
+{
+  
+  # Przygotowanie nazw dla macierzy:
+  names = getCoeffNames(model)
+  
+  # W gibbs@parameters siedzi proba losowa
+  # W ostatniej kolumnie jest tau - ktore usuwam
+  # w zadaniu maceirz korealcji ma byc bez Tau
+  cor = cor(gibbs@parameters[, -ncol(gibbs@parameters)])
+  rownames(cor) = names
+  colnames(cor) = names
+  cor
+})
+
+
 

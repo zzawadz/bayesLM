@@ -8,3 +8,6 @@ setMethod("getModelMatrix", "BLM", function(model) model.matrix(model@formula, m
 
 
 
+setGeneric("getCoeffNames", function(model) standardGeneric("getCoeffNames"))
+setMethod("getCoeffNames", "BLM",function(model) names(model@coeff))
+setMethod("getCoeffNames", "GibbsRes",function(model) getCoeffNames(model@model))

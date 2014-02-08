@@ -54,7 +54,7 @@ plotCoefDistributions(model)   #3
 
 A dodanie histogramów uzyskanych dla prób wygenerowanych próbnikiem Gibbsa:
 <<fig.height=4>>=
-gibbs = getGibbsStats(model, burn = 100, n = 1000)
+gibbs = getGibbsStats(model, burn = 1000, n = 10000)
 plotCoefGibbsHist(gibbs)
 @
 
