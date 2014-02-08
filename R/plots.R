@@ -65,7 +65,7 @@ setMethod("plotCoefGibbsHist", "GibbsRes", function(gibbs, nsd = 3.5, index = NU
   for(i in 1:n)
   {
     hist(parameters[,i], freq = FALSE, main = names[i])
-    plotCoefDistributions(gibbs@model, nsd=nsd,index=i, add = TRUE)
+    plotCoefDistributions(gibbs@model, nsd=nsd,index=i, add = TRUE, ...)
   }
  
 })

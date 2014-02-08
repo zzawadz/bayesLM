@@ -1,0 +1,73 @@
+\documentclass{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+
+\title{Projekt}
+
+\begin{document}
+
+Projekt:
+
+\section{Estymacja modelu}
+
+\subsection{Estymacja parametrów:}
+Dopasowanie modelu:
+<<>>=
+require(bayesLM)
+data = read.csv("dane.csv")[,-1]
+data = tail(data,100)
+model = fitBLM(DAX~CAC40+FTSE100+NYSEUS100, data)
+@
+
+\subsection{Próbnik Gibbsa}
+
+<<>>=
+gibbs = getGibbsStats(model)
+@
+
+\section{Analiza}
+
+Wykresy:
+<<>>=
+plotCoefGibbsHist(gibbs, lwd = 2)
+@
+
+\section{Statystyki dla parametrów:}
+Wartość oczekiwana:
+<<>>=
+getCoeffExpVal(model)
+
+# Domyslnie srednia
+getCoeffExpVal(gibbs)
+
+# Do funckji przekazywana jest funkcja
+# Teoretycznie mozna uzyc innego estymatora!
+getCoeffExpVal(gibbs, type=median)
+
+# Mozna tej funckji uzyc do dostania sd - wystarczy zrobic cos takiego
+# Jedank jest do sd jest funckja getCoeffSD
+getCoeffExpVal(gibbs, type=sd)
+@
+
+Odchylenia standardowe:
+<<>>=
+getCoeffSD(model)
+getCoeffSD(gibbs)
+@
+
+HPD:
+<<>>=
+getHPD(model)
+getHPD(gibbs)
+@
+
+\section{Macierze korelacji}
+<<>>=
+getCorMatrix(model)
+getCorMatrix(gibbs)
+@
+
+
+\end{document}
