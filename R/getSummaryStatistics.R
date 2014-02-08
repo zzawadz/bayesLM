@@ -53,9 +53,9 @@ setMethod("getCoeffSD", "GibbsRes", function(model)
 ### Przedzialy HPD:
 
 setGeneric("getHPD", function(model, q = 0.05) standardGeneric("getHPD"))
-setMethod("getHPD", "BLM", function(model, q = 0.05)
+setMethod("getHPD", "BLM", function(model, q = 0.95)
 {
-  q = q/2
+  q = (1-q)/2
   sd  = getCoeffSD(model)
   tmp_n = names(model@coeff)
   

@@ -1,3 +1,5 @@
+#########################
+
 setMethod("plotCoefDistributions", "BLM", function(model, nsd = 3.5, index = NULL,...)
 {
   #Rysowanie rozkladow analitycznych dla parametrow.
@@ -53,6 +55,8 @@ setMethod("plotCoefDistributions", "BLM", function(model, nsd = 3.5, index = NUL
   if(tmp) par(par_def)
 })
 
+####################
+
 setMethod("plotCoefGibbsHist", "GibbsRes", function(gibbs, nsd = 3.5, index = NULL,...)
 {
   n = ncol(gibbs@parameters)
@@ -72,11 +76,39 @@ setMethod("plotCoefGibbsHist", "GibbsRes", function(gibbs, nsd = 3.5, index = NU
 
 
 
-#  x = 1:100
-#  y = 1:100+rnorm(100)
-#  data = data.frame(x,y)
-#  model = fitBLM(y~x, data)
-# 
-# gibbs = getGibbsStats(model)
-# 
-#  plotCoefGibbsHist(gibbs)
+#################### 
+setGeneric("plotHPD", function(model, q = 0.95, index = NULL, nsd = 3.5) standardGeneric("plotHPD"))
+setMethod("plotHPD", "BLM", function(model, q = 0.95,index = NULL, nsd = 3.5)
+{
+  if(is.null(index)) index = 1:length(model@coeff)
+  names = getCoeffNames(model)
+  if(is.character(index)) index = which(index == names)
+  
+  hpd = getHPD(model,q=q)
+  for(i in index)
+  {
+    mu = model@coeff[i]
+    prec = model@precision[i]
+    df = model@df
+    sd = sqrt(1/prec*(df/(df-2)))
+    #Curve rysuje ten rozklad o gestosci zdefiniowanej w densityStudent:
+    
+    i_hpd = hpd[i,]
+    
+    hpd_range = seq(i_hpd[1],i_hpd[2],length.out=300)
+    
+    curve(densityStudnet(x,df=df,mu=mu,prec=prec), ylab = "",
+          xlim = c(mu-nsd*sd, mu+nsd*sd), main = names[i])
+    
+    
+    hpd_value = densityStudnet(hpd_range,df=df,mu=mu,prec=prec)
+    hpd_value = c(hpd_value, rep(0,length(hpd_value)))
+    hpd_range_pol = c(hpd_range,rev(hpd_range))
+    col=rgb(red=1,green=0,blue=0,alpha=0.6)
+    polygon(hpd_range_pol, hpd_value,col = col)
+  }
+    
+    
+})
+
+#plotHPD(model,index="(Intercept)")

@@ -8,7 +8,7 @@ getGibbsStats = function(model, burn = 1000, n = 1000)
   beta_hat = model@coeff
   
   sb = 0
-  nobs = model@nobs
+  df = model@df#model@nobs
   
   parameters = matrix(nrow = ntotal, ncol = length(model@coeff)+1)
   
@@ -30,7 +30,7 @@ getGibbsStats = function(model, burn = 1000, n = 1000)
   {
     # tau
     sb = sum((y-X%*%beta)^2)
-    tau=rgamma(1, nobs/2, 0.5*sb);
+    tau=rgamma(1, df/2, 0.5*sb);
     # beta
     beta = mvrnorm(1, beta_hat, 1/tau*invXX)
     parameters[i,] =c(beta,tau)

@@ -24,7 +24,7 @@ model = fitBLM(DAX~CAC40+FTSE100+NYSEUS100, data)
 \subsection{Próbnik Gibbsa}
 
 <<>>=
-gibbs = getGibbsStats(model)
+gibbs = getGibbsStats(model,burn= 5000,n=20000)
 @
 
 \section{Analiza}
@@ -68,6 +68,31 @@ getHPD(gibbs)
 getCorMatrix(model)
 getCorMatrix(gibbs)
 @
+
+\section{Statystyki dla Tau}
+
+<<>>=
+getTauMean(model)
+getTauMedian(model)
+getTauSD(model)
+
+getTauMean(gibbs)
+getTauMedian(gibbs)
+getTauSD(gibbs)
+@
+
+
+\section{Inne}
+Rysuje HPD dla podanego parametru
+<<>>=
+plotHPD(model,q=0.95,index="CAC40")
+@
+
+Tutaj mozna sobie zobaczyc nazwy parametrow
+<<>>=
+getCoeffNames(model)
+@
+
 
 
 \end{document}
