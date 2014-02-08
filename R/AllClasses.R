@@ -1,5 +1,6 @@
 setClass("BLM",slots=c(formula = "formula", data = "data.frame", coeff = "numeric", sigma2 = "numeric", df = "numeric", precision = "numeric", invXX = "matrix", X = "matrix", nobs = "numeric"))
 setClass("GibbsRes", slots = c(niter = "numeric", burn = "numeric", parameters = "matrix", model = "BLM"))
+setClass("BLMPrediction", representation(xf = "matrix",model = "BLM", sd = "numeric"), contains="numeric")  
 
 
 setGeneric("plotCoefDistributions", function(model, nsd = 3.5, index = NULL, ...) standardGeneric("plotCoefDistributions"))
