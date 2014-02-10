@@ -15,4 +15,9 @@ plot(model)
 #plotCoefDistributions(model)
 plotHPD(model,index="father")
 
+gibbs = getGibbsStats(model,burn=1e4,1e5)
+plotCoefGibbsHist(gibbs,lwd = 5)
 
+
+getCoeffExpVal(model)
+getCoeffExpVal(gibbs)

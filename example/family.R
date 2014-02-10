@@ -27,6 +27,7 @@ plotHPD(model,index="(Intercept)")
 getCoeffNames(model)
 # Podaje sie w kolejnosci ojciec matka, gender
 pred = getPrediction(c(170,160,0),model)
+as.numeric(pred)
 getPredHPD(pred)
 
 ### Gibbs
