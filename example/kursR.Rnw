@@ -1,0 +1,306 @@
+\documentclass{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage{geometry}
+
+\newgeometry{tmargin=2.5cm, bmargin=2.5cm, lmargin=3cm, rmargin=3cm}
+
+\let\stdsection\section
+\renewcommand\section{\newpage\stdsection}
+
+\author{Zygmunt Zawadzki}
+\title{Kurs R v0.01}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section{Wprowadzenie}
+
+To jest pierwsza wersja mojego kursu dotyczącego R.
+
+Kurs składa się z kilku części:
+\begin{itemize}
+\item Wprowadznie - to właśnie czytasz. Opis całego kursu.
+\item Podstawy R - absolutne podstawy R, typy zmiennych, wczytywanie danych, proste rysunki.
+\item Trochę tRudniej - tutaj są rzeczy troszkę trudniejsze, związane z programowaniem obiektowym w R (nie trzeba się przejmować, jeżeli komuś ta nazwa teraz nic nie mówi), używaniem wielokropka i apply.
+\item Budujemy pakiet - zastosowanie zdobytej wiedzy w praktyce - czyli budowa krok po kroku pakietu w R!
+\item Różności - zbiór różności na temat R, czyli jak odpalić kod z C++ w R i inne. Bardziej pokaz możliwości, niż rzeczywisty samouczek - lecz postaram się wrzucić odpowiednią ilość linków.
+\item ArrRrrgh!!! - zbiór najbardziej wkurzających cech języka.
+\end{itemize}
+
+\subsection{Porady ogólne}
+
+W przypadku kodu zaprezentowanego w przykładach jest bardzo duża szansa, że będzie on działał. Wynika to z faktu, że w większości przypadków ten kod jest zwyczanie wykonywany w trakcie tworzenia dokumentu pdf (w dalszej części będzie można przeczytać trochę jak osiągnąć taki efekt). Starałem się przedstawić wszystkie przykłady razem z wynikami pośrednimi (wydrukami z konsoli), jednak nie we wszytkich przypadkach było to możliwe. Dlatego też szczerze zachęcam do własnoręcznego uruchomienia wszystkich przykładów. Tutaj zawsze pojawia się problem natury - przekopiować przykład, czy przepisać kod? Sam jestem zwolennikiem przepisywania kodu z przykładów (na etapie uczenia się), wtedy dużo więcej się zapamiętuje - dlatego też rekomenduję tę drogę.
+
+Warto również zaglądać w linki umieszczone na koćnu każdego rozdziału. Jest tam szersze rozwinięcie omawianego tematu.
+
+\section{Podstawy R}
+
+\subsection{Absolutne podstawy - typy i struktury danych, operacje matematyczne}
+
+O podstawowych operacjach matematycznych nie ma się co za bardzo rozpisywać - każdy kto miał kiedykolwiek klakulator w ręku domyśli się, jak dodawać odejmować mnożyć, dzielić i potęgować w R:
+<<>>=
+3+4*7-11/2^4
+@
+
+Znacznie ciekawsze są typy danych występujące w R. Jednak na tym etapie nie ma za bardzo sensu się nad nimi zbytnio rowzwodzić. R jest językiem typowanym dynamicznie - co znaczy, że przy tworzeniu zmiennej nie trzeba określać czy jest ona liczbą całkowitą, zmiennoprzecinkową, czy może stringiem (napisem) - R sam zdecyduje. Jeżeli jednak z jakiegoś powodu ktoś chciałby sprawdzić jakiego typu jest to co stworzył należy użyć funckji \textbf{class}. Przykład dynamicznego typowania:
+<<>>=
+x = 5
+class(x)
+x = "Ala"
+class(x)
+y = 5+7i
+class(y)
+@
+
+Jeszcze ciekawsze są struktury danych. Podstawową strukturą jest wektor. Wektor składa się z wielu elementów(!). Do utworzenia wektora służy funckja \textbf{c()}
+<<>>=
+x = c(1,2,5,11)
+@
+Ładna rzecz. Ale czy ma jakiekolwiek zastosowanie praktyczne? Otóż tak. W R praktycznie nie operuje się na pojedyńczych liczbach, tylko właśnie na wektorach - bardzo dużo funkcji jest "zwektoryzowanych" - co znaczy, że operuje na wszystkich elementach na raz. Dla przykładu - \textbf{sqrt} - funckja licząca pierwiastek kwadratowy zastosowana dla wektora również zwróci wektor:
+<<>>=
+x = c(1,3,6)
+sqrt(x)
+@
+Teraz może jeszcze nie czuć tego, jednak "wektoryzacja" to bardzo potężne narzędzie.
+
+\subsection{Funkcje, pętle}
+
+\subsection{Wczytywanie i zapisywanie danych}
+
+\subsection{Podstawowe wykresy}
+
+\subsection{Daty}
+
+\section{Trochę tRudniej}
+
+\subsection{Apply}
+
+Funkcje z rodziny \textbf{apply} na początku mogą sprawiać pewną trudność - jednak ich opanowanie bardzo ułatwia pracę z R.
+
+\subsubsection{Sapply}
+Zaczniemy od najprostszej wersji: funckji \textbf{sapply} - najlepiej spisuje się ona w przypadku wektorów i list. Osobiście używam jej zamiast pętli for. Sapply przyjmuje conajmniej dwa argumenty - wektor/listę i funkcję, która ma być wywołana na poszczególnych elementach. Dla przykładu - mamy listę w której znajdują się dwa wektory, a naszym celem jest policzenie średniej dla tych wektorów. Rozwiązanie przy pomocy pętli for:
+<<>>=
+x = 1:2; y = 4:6
+z = list(x,y)
+means = rep(0, length(z))
+for(i in 1:length(z)) means[i] = mean(z[[i]])
+means
+@
+A można krócej i nie trzeba zmiennej pomocniczej means:
+<<>>=
+sapply(z,mean)
+@
+
+Niby ładnie, ale do czego to można jeszcze użyć? Dla przykładu - dostaliśmy wektor zawierający jakieś nazwy - przy czym, składają się one z dwóch części - właściwej, do ktrórej chcemy się dobrać i jakiś śmieci, których należałoby się pozbyć. Śmieci od części właściwej są oddzielone podkreślnikiem. Do rozdzielenia stringu względem podkreślnika będzie służyć funckja \textbf{strsplit}. Tylko, że ona zwraca taką nie ładną listę, zawierającą wektory z których zawsze chcemy pierwszy element.
+<<>>=
+x = c("a_b","x_ala")
+strsplit(x,"_")
+@
+Ktoś może pomyśleć o rozwiązaniu z użyciem fora, ale nie byłoby to po Rowemu. Trzeba to rozwiązać jednolinijkowcem.
+<<>>=
+sapply(strsplit(x,"_"), function(x) x[1])
+@
+Ale jak to? No tak, że do sapply poszła lista ze strsplit, a na każdym elemencie została wywołana funckja, która nawet nie ma nazwy, ale zwraca pierwszy elemnt przekazanego do niej wektora. Z tego przykładu płynie dodatkowa nauka - przekazywana funckja nie musi być nigdzie wcześniej zadeklarowana!
+
+Na zakończenie zabawy z sapply dodam jeszcze, że powyższy przykład można rozwiązać jeszcze weselej:
+<<>>=
+sapply(strsplit(x,"_"), "[", 1)
+@
+Tym razem zostaje wywołana funckja "[" - która oznacza operator odwołania się do elementu, a jeden jest argumentem który zostanie przekazany do "[". Poniższe zapisy są równoważne.
+<<tidy=FALSE>>=
+x[1]
+"["(x,1)
+@
+
+\subsubsection{Apply}
+
+Apply służy głównie do macierzy i data.frameów. Działa bardzo podobnie do sapply, z tą różnicą, że przyjmuje jeden dodtkowy argument określający, czy przekazywana funckja ma być zastosowana do wierszy, czy do kolumn. 1- oznacza wiersz. 2 - kolmny. Dla przykładu - celem jest policzenie średniej dla wszystkich wierszy:
+<<>>=
+x = matrix(1:6,nrow = 3)
+apply(x,1,mean)
+@
+Opis działania jest bardzo prosty - bierze elemnty pierwzsego wierza, stosuje na nich funckję mean, następnie bierze elementy drugiego wiersza - robi średnią itd.
+
+Z bardziej rzeczywistych przykładów - celem jest zlokalizowanie wierszy z brakującymi danymi.
+<<>>=
+x = matrix(c(1,1,NA,1,NA,1),ncol = 2)
+x
+which(apply(x,1, function(d) any(is.na(d))))
+@
+Nad powyższym przykładem można zastanowić się samemu. Funckja \textbf{any}, zwraca TRUE, jeżeli chociaż jeden z elementów przekazanego do niej wektora jest TRUE.
+
+Zadanie dodatkowe - przeanalizować jak i dlaczego poniśzy kod działa robi to samo:
+<<>>=
+which(rowSums(is.na(x))>0)
+@
+
+To tyle na temat rodziny apply - mam nadzieję, że główna idea została pokazana - resztę trzeba eksplorować samemu:-)
+
+
+
+\subsection{Wielokropek}
+
+\subsection{Klasy S3}
+
+\subsection{Klasy S4}
+
+\subsection{Dziedziczenie}
+
+\section{Budujemy pakiet}
+
+\subsection{Dlaczego pakiet?}
+
+\subsection{Struktura katalogów i poszczególne pliki}
+
+\subsection{Tworzenie dokumentacji - klasycznie}
+
+\subsection{Tworzenie dokumentacji - Roxygen}
+
+\subsection{Repozytorium}
+
+\section{Różności}
+
+\subsection{\LaTeX w R}
+
+\LaTeX cytując za wikipedią jest oprogramowaniem do składu tesktu. Piszę o nim, bo jest bardzo dobrze połączony z R - cały ten kokument został napisany przy pomocy \LaTeX i R. \LaTeX jest alternatywą dla Worda. Na początku zetknięcie się z nim może być BARDZO nie przyjemne, jednak po czasie wynagradza wszystkie bolączki. Polecam serdecznie poczytać o nim w internecie.
+
+\subsection{Wyrażenia regularne}
+
+\subsection{C++ w R}
+
+\subsection{xts - pakiet do obróbki szeregów czasowych.}
+
+R posiada wspaniały pakiet do obsługi szeregów czasowych. W zasadzie sam pakiet załuguje na osobny tutorial. Poniżej zostaną przedstawione tylko dwie jego funckje. Jednak obie te funckje sprawiają, że ten pakiet jest niesamowicie użyteczny i w zasadzie wszystko co robiłem związanego z szeregami czasowymi stoi na xts-ie. 
+
+Najpierw wczytanie danych:
+<<>>=
+require(xts)
+data(sample_matrix)
+date = as.POSIXct(rownames(sample_matrix))
+data = xts(sample_matrix, order.by=date)
+@
+\subsubsection{Podokresy}
+W xts-sie bardzo łatwo wybierać pod okres:
+<<fig.height=3.5,fig.width=6>>=
+# Ceny otwarica z marca 2007
+plot(data["2007-03","Open"])
+# Ceny do marca 2007
+plot(data["/2007-03","Close"])
+@
+\subsubsection{period.apply}
+Gdyby nie było tych funkcji należałoby je napisać! Dla przykładu - celem jest policzenie średnich cen z miesiąca. Jak by to zrobić? Może pętlą for i jakoś skorzystać z tych podokresów pokazanych wyżej? Prościej jest jednak wykorzystać jedną z funkcji należących do rodziny period.apply.
+<<>>=
+apply.monthly(data, function(x) colMeans(x))
+@
+A najniższa cena w kawrtale?
+<<>>=
+apply.quarterly(data, function(x) min(x))
+@
+
+
+\section{ArrRrrgh!!!}
+
+\subsection{Ujemne indeksy w R}
+Ujemne indeksy w R są bardzo użyteczną konecpcją. Poniżej przykład dlaczego.
+<<>>=
+# Przykladowe dane:
+x = c(7,1,1,2,2)
+x
+
+# Chcemy sie pozyc pierwszego elementu:
+# Mozna np. tak:
+x[2:length(x)]
+
+# Ale wygodniej tak:
+x[-1]
+@
+
+Czasem jednak może być to zgubne - szczególnie w połączeniu z funckją which. Poniżej przykład. Dane te co wyżej. Zadanie - pozbyć się wszystkich wartości równych jeden.
+<<>>=
+# Przypomnienie which:
+which(x==1)
+
+# Ok:
+x[-which(x==1)]
+@
+Jak widać powyższy kod działa poprawnie. Ale teraz sytuacja inna - należy pozbyć się wszystkich wartości większych od 100:
+<<>>=
+x[-which(x>100)]
+@
+Jak to \textbf{numeric(0)}? Bez sensu. Otóż nie. Problem leży tutaj:
+<<>>=
+which(x>100)
+@
+Which zwraca pusty wektor, bo zwyczajnie nie ma w x-ie wartości większych od 100. To jest poprawne. A teraz należy sobie zadać pytanie - jakie działanie ma znak minus na pusty - wektor. Otóż żadne - minus nic, jest równe plus nic:-). No a dalej następuj próba pobrania niczego z wektora... Widać jak się kończy. Morał - trzeba uważać używając \textbf{which}, a najlepiej używać go jak najmniej:
+<<>>=
+# To dziala normalnie:
+x[!x>100]
+@
+
+\subsection{Macierze i drop}
+
+Prześledźmy następujący przykład - mamy jakiś zbiór danych, na przykład taki:
+<<>>=
+# Przykladowe dane:
+x = matrix(c(1,1,2,6,7,8), ncol = 2)
+x
+@
+Naszym celem jest teraz dostać wszystkie wiersze, dla których pierwsza kolumna równa się jeden. Najszybciej zrobić to tak:
+<<>>=
+x[x[,1]==1,]
+@
+Działa. Teraz powiedzmy, że w dalszych obliczeniach potrzebna jest nam tylko druga kolumna. Można więc zrobić to na przykład tak:
+<<>>=
+res = x[x[,1]==1,]
+res[,2]
+@
+Dalej działa. Teraz dla dwójki:
+<<>>=
+res = x[x[,1]==2,]
+res[,2]
+@
+Argh! Dlaczego?! Skoro działało dla jedynki, to czemu nie dla dwójki?! Otóż w R jest tak, że jeżeli z macierzy pobieramy tylko jeden wiersz, jest on automatycznie zamieniany na wektor - czyli traci drugi wymiar. Takie działanie ma sens w 99\% przypadków, np. gdy używamy pętli for. Jednak jak widać czasem prowadzi do dość nieoczekiwanego zbiegu wydarzeń. By się przed tym ustrzec należy jasno zaznaczyć Rowi, by nie robił tej konwersji z macierzy na wektor w żadnym przypadku. Służy do tego parametr drop.
+<<>>=
+res = x[x[,1]==2,,drop = FALSE]
+res[,2]
+@
+Teraz działa! Nauka na przyszłość - jeżeli z macierzy wybieramy na podstawie jakiejkolwiek logiki jakiś podzbiór to dobrze jest stosować \textbf{drop=FALSE}.
+
+\subsection{Tekst jako Factor}
+
+<<>>=
+date = as.POSIXct(3600*24*1:4, origin="1970-01-01")
+data = data.frame(date = date, values = 1:4)
+write.csv(data,file = "data.csv", row.names = FALSE)
+
+# Wczytanie danych:
+x = read.csv("data.csv")
+x
+@
+Wszytko ładnie, data wygląda jak data - ale czy nią jest? Czasem, przy okazji różnych obliczeń, trzeba datę zrzutować na typ liczbowy, by wykonać na niej różne operacje a jak wiadomo (lub nie) konwertując datę klasy POSIXct na typ numeric otrzymamy liczbę sekund które minęły od 1 stycznia 1970 roku. No to do dzieła: 
+<<>>=
+# Ze zmiennej date:
+as.numeric(date)
+# Wczytane z pliku:
+as.numeric(x[,1])
+@
+Ze zmiennej \textbf{date} otrzymujemy wyżej wspomnianą liczbę sekund, natomiast z wczytanego pliku dostajemy jakiś bezsens. W tym przypadku R pokraktował datę jako tekst, a standardowo przy wczytywaniu pliku tekst jest zamieniany na typ factor. W takim przypadku należy samemu wywołać stosowną konwersję. 
+<<>>=
+# ok!
+as.numeric(as.POSIXct(x[,1]))
+@
+
+W wielu przypadkach warto też zastosować parametr \textbf{stringsAsFactor=FALSE}, wtedy tekst pozostaje tekstem. I przy próbie konwersji od razu zobaczymy stosowny warning.
+<<>>=
+x = read.csv("data.csv",stringsAsFactor=FALSE)
+as.numeric(x[,1])
+@
+<<echo=FALSE,include=FALSE>>=
+file.remove("data.csv")
+@
+
+
+\end{document}
