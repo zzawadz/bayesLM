@@ -4,15 +4,27 @@
 \usepackage{hyperref}
 \usepackage{geometry}
 
+\usepackage[sectionbib]{natbib}
+\usepackage[sectionbib]{chapterbib}
+
+
 \newgeometry{tmargin=2.5cm, bmargin=2.5cm, lmargin=3cm, rmargin=3cm}
 
 \let\stdsection\section
 \renewcommand\section{\newpage\stdsection}
 
 \author{Zygmunt Zawadzki}
-\title{Kurs R v0.01}
+\title{Kurs R v0.001}
 
 \begin{document}
+
+<<setup, include=FALSE>>=
+knit_hooks$set(addLabel = function(before, options, envir) {
+  if (before) sprintf('\\label{%s}', options$label) 
+})
+@
+
+
 \maketitle
 \tableofcontents
 
@@ -66,13 +78,197 @@ sqrt(x)
 @
 Teraz może jeszcze nie czuć tego, jednak "wektoryzacja" to bardzo potężne narzędzie.
 
-\subsection{Funkcje, pętle}
+\subsection{Funkcje}
+
+R posiada funckje do praktycznie wszystkiego. Jednak bardzo często zachodzi potrzeba stworzenia własnych funkcji. Poniżej przykład jak tworzy się własne funckje:
+
+<<>>=
+getV = function(x)
+{
+  sd(x)/mean(x)
+}
+@
+
+W tym miejscu należy wspomnieć, że bardzo częśto w przykładach będą wykorzystywane przykładowe dane. W głównej mierze do ich wygenrowania będę korzystał z wbudowanych funkcji takich jak \textbf{rnorm}. Więcej informacji na ich temat można znaleźć w dokumentacji.
+<<>>=
+# Przykladowe dane:
+z = rnorm(500,40,20)
+getV(z)
+@
+
+Więcej na temat funckji nie będę się rozpisywał - więcej przykładów dlaczego warto stosować funkcje będzie później.
+
+\subsection{Pętla for}
+
+W językach programowania bardzo ważną rolę odgrywają pętle, które pozwalają wielokrotnie powtórzyć tę samą operację. Najbardziej podstawową pętlą jest \textbf{for}, którą zaraz pokażę. Natomiast funckji innego typu praktycznie nie używam(jak będzie potrzeba to opiszę). 
+
+Jak działa i wygląda ta pętla? Otóż tak: \textbf{for(i in x)}, przy czym w kolejnych przebiegach \textbf{i} będzie przyjmować kolejne wartości z wektora \textbf{x}. Przykład:
+
+<<>>=
+z = c("a","b","c")
+for(i in z)
+{
+  print(i)
+}
+@
+
+Przykład mało informacyjny - i w zasadzie bez użyteczny. Dużo częściej for wykorzystuje się by coś zapisywać na przykład do macierzy, lub wektora. W przykładzie celem będzie narysowanie przybliżonego rozkładu średniej pochodzącej z rozkładu gamma (a czemu nie?:-)):
+
+<<code-for,fig.height=4, addLabel=TRUE>>=
+nsim = 1000
+nobs = 100
+shape = 5
+result = numeric(nsim)
+for(i in 1:length(result))
+{
+  result[i] = mean(rgamma(nobs,shape))
+}
+# Histogram:
+hist(result)
+@
+
+Osobiście jednak nie przepadam za pętlą for i użyłbym innego kodu. Ale o tym będzie dalej(tzn. tu: \ref{code-sapply}).
+
 
 \subsection{Wczytywanie i zapisywanie danych}
 
 \subsection{Podstawowe wykresy}
 
+R posiada sporo narzędzi graficznych, począwszy od bazowego systemu który wystarcza do większości zastosowań, aż do bardziej skomplikowanych rzeczy typu implementacja "gramatyki grafiki"\citep{ggplot2}. W poniższej części zostanie omówionych kilka wykresów - wykres pudełkowy, histogram, wykres gęstości i zwykły scatterplot. W domyśle planuję roszerzony kurs grafiki w R, który z pewnością mógłby zająć znacznie więcej niż objętość tego samouczka.
+
+\subsubsection{Wykres pudełkowy}
+Podstawowy wykres
+
+<<>>=
+x = c(rnorm(100,3,1.5), rnorm(10,8,2))
+boxplot(x)
+@
+
+<<>>=
+x = cbind(rnorm(100,2),rnorm(100,3,2))
+colnames(x) = c("Zbior 1", "Zbior 2")
+boxplot(x, main = "Boxploty")
+@
+
+\subsubsection{Parametry graficzne}
+
+\subsubsection{Inne wykresy}
+
+\subsubsection{Kilka wykresów naraz}
+
+
+\subsubsection{Coś trudniejszego - scattermatrix własnej produkcji}
+
+Pora zastosować trochę poznanej wiedzy w czymś na kształt praktyki. W tym celu przydada się trochę obserwacji wielowymiarowych:
+
+Generowanie przykładowych danych:
+<<>>=
+require(MASS)
+x = mvrnorm(100, rep(0,4), diag(4))
+@
+
+Celem będzie otrzymanie takiego wykresu:
+
+<<echo=FALSE,fig.height=5,fig.width=5>>=
+plotScMat = function(x)
+{
+  dim = ncol(x)
+
+  lay = matrix(1:(dim^2),nrow = dim)
+  lay = cbind(0,lay,0)
+  lay = rbind(0,lay,0)
+  
+  layout(lay, widths=c(1,rep(5,dim),1),heights=c(1,rep(5,dim),1))
+  par(mar = rep(0,4))
+  
+  for(i in 1:dim)
+  {
+    for(j in 1:dim)
+    {
+      if(i==j) 
+      { plot(1,1,type = "n", axes = FALSE, xlab = "",ylab = "",xlim = c(0,1),ylim=c(0,1));
+        text(0.5,0.5,paste(i),cex= 4)   
+        next;
+      } 
+      plot(x[,i],x[,j],yaxt = "n", xaxt = "n", xlab = "", ylab = "")
+      if(j == dim) axis(1)
+      if(j == 1) axis(3)
+      if(i == dim) axis(4)
+      if(i == 1) axis(2)
+    }
+  }
+  par(mar = c(5,4,4,4)+0.1)
+}
+plotScMat(x)
+@
+
+Oczywiście wystarczyłoby 5 minut w google, żeby znależć gotową funckję rysującą taki wykres w jakimś pakiecie, jednak warto prześledzić ten przykład gdyż w nim zostaną wykorzystane w zasadzie wszystkie wcześniej pokazane funckje i parametry graficzne w działaniu.
+
+Zacznijmy od funckji rysującą wielką literę. Jak ją zrobić? Moim pomysłem jest narysować wykres, tylko bez żadnych osi, opisów i danych. Następnie dodać jego obramówkę, a na koniec po środku tekst:
+<<fig.width=3,fig.height=3>>=
+par(mfrow=c(1,1))
+emptyPlot = function(i)
+{
+  plot(1,1,type = "n", axes = FALSE, xlab = "",ylab = "",xlim = c(0,1),ylim=c(0,1))
+  box()
+  text(0.5,0.5,i,cex = 4)
+}
+emptyPlot(5)
+@
+Działa!
+
+Teraz layout na te wykresy:
+<<>>=
+dim = ncol(x)
+lay = matrix(1:(dim^2),nrow = dim)
+lay = cbind(0,lay,0)
+lay = rbind(0,lay,0)
+layout(lay, widths=c(1,rep(5,dim),1),heights=c(1,rep(5,dim),1))
+layout.show(dim^2)
+@
+
+No i cała reszta:
+// Trzeba to jeszcze opisać:
+<<>>=
+dim = ncol(x)
+lay = matrix(1:(dim^2),nrow = dim)
+lay = cbind(0,lay,0)
+lay = rbind(0,lay,0)
+layout(lay, widths=c(1,rep(5,dim),1),heights=c(1,rep(5,dim),1))
+par(mar = rep(0,4))
+for(i in 1:dim)
+  {
+    for(j in 1:dim)
+    {
+      if(i==j) 
+      { 
+        emptyPlot(i)
+        next;
+      } 
+      plot(x[,i],x[,j],yaxt = "n", xaxt = "n", xlab = "", ylab = "")
+      if(j == dim) axis(1)
+      if(j == 1) axis(3)
+      if(i == dim) axis(4)
+      if(i == 1) axis(2)
+    }
+  }
+  par(mar = c(5,4,4,4)+0.1)
+@
+
+
 \subsection{Daty}
+
+Daty.\citep{lubridate}
+
+
+\bibliographystyle{plainnat}
+\bibliography{bibliografia}
+
+
+%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Trochę tRudniej}
 
@@ -80,7 +276,12 @@ Teraz może jeszcze nie czuć tego, jednak "wektoryzacja" to bardzo potężne na
 
 Funkcje z rodziny \textbf{apply} na początku mogą sprawiać pewną trudność - jednak ich opanowanie bardzo ułatwia pracę z R.
 
+%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%
+
+
 \subsubsection{Sapply}
+\label{sec:Sapply}
 Zaczniemy od najprostszej wersji: funckji \textbf{sapply} - najlepiej spisuje się ona w przypadku wektorów i list. Osobiście używam jej zamiast pętli for. Sapply przyjmuje conajmniej dwa argumenty - wektor/listę i funkcję, która ma być wywołana na poszczególnych elementach. Dla przykładu - mamy listę w której znajdują się dwa wektory, a naszym celem jest policzenie średniej dla tych wektorów. Rozwiązanie przy pomocy pętli for:
 <<>>=
 x = 1:2; y = 4:6
@@ -114,6 +315,17 @@ Tym razem zostaje wywołana funckja "[" - która oznacza operator odwołania si�
 x[1]
 "["(x,1)
 @
+
+I na koniec przykład analogiczny jak w \ref{code-for}:
+<<code-sapply,addLabel=TRUE>>=
+nsim = 1000
+nobs = 100
+shape = 5
+result = sapply(1:nsim, function(x) mean(rgamma(nobs,shape)))
+@
+
+%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{Apply}
 
